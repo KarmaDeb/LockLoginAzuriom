@@ -36,6 +36,13 @@ class AddLockLogin extends Migration {
                 $table->string('created_at')->nullable();
             }
         });
+        
+        $users = DB::select("SELECT * FROM `users`");
+        $users = json_decode(json_encode($users), true);
+        foreach ($users as $key => $value) {
+            $name = $value['name'];
+            DB::update("UPDATE `users` SET `Player`='{$name}' WHERE `name`='{$name}'");
+        }
     }
 
     /**
