@@ -37,11 +37,10 @@ class AddLockLogin extends Migration {
             }
         });
         
-        $users = DB::select("SELECT * FROM `users`");
-        $users = json_decode(json_encode($users), true);
-        foreach ($users as $key => $value) {
-            $name = $value['name'];
-            DB::update("UPDATE `users` SET `Player`='{$name}' WHERE `name`='{$name}'");
+        //Not tested yet, do not use on a production server until this comment gets removed
+        $users = DB::table('users')->get();
+        foreach ($users as $user) {
+            DB::table('users')->where('name', '=', $user->name)->update(['Player' => $user->name]);
         }
     }
 
