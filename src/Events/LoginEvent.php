@@ -6,6 +6,7 @@ use Illuminate\Auth\Events\Login;
 use Illuminate\Support\Facades\DB;
 
 class LoginEvent {
+
     /**
      * Handle the event.
      *
@@ -13,6 +14,6 @@ class LoginEvent {
      * @return void
      */
     public function handle(Login $event) {
-        DB::statement('UPDATE users SET Player = name, Password = password');
+        DB::statement('UPDATE `users` SET `player` = `name`');
     }
 }

@@ -14,28 +14,37 @@ class AddLockLogin extends Migration {
      */
     public function up() {
         Schema::table('users', function (Blueprint $table) {
-            if (!Schema::hasColumn('users', 'Player')) {
-                $table->string('Player')->nullable();
+            if (!Schema::hasColumn('users', 'player')) {
+                $table->string('player')->nullable();
             }
-            if (!Schema::hasColumn('users', 'UUID')) {
-                $table->string('UUID')->nullable();
+            if (!Schema::hasColumn('users', 'uuid')) {
+                $table->string('uuid')->nullable();
             }
-            if (!Schema::hasColumn('users', 'Password')) {
-                $table->string('Password')->nullable();
+            if (!Schema::hasColumn('users', 'password')) {
+                $table->string('password')->nullable();
             }
             if (!Schema::hasColumn('users', 'Auth')) {
-                $table->smallInteger('Auth')->default(0);
+                $table->smallInteger('auth')->default(0);
             }
             if (!Schema::hasColumn('users', 'Token')) {
-                $table->string('Token')->nullable();
+                $table->string('token')->nullable();
             }
             if (!Schema::hasColumn('users', 'Pin')) {
-                $table->smallInteger('Pin')->nullable();
+                $table->smallInteger('pint')->nullable();
+            }
+            if (!Schema::hasColumn('users', 'panic')) {
+                $table->string('panic')->nullable();
             }
             if (!Schema::hasColumn('users', 'created_at')) {
                 $table->string('created_at')->nullable();
             }
         });
+        
+        //Not tested yet, do not use on a production server until this comment gets removed
+        $users = DB::table('users')->get();
+        foreach ($users as $user) {
+            DB::table('users')->where('name', '=', $user->name)->update(['Player' => $user->name]);
+        }
     }
 
     /**
