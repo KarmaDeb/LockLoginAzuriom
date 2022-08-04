@@ -9,5 +9,8 @@
     "files": [
       "src/helpers.php"
     ]
+  },
+  "require": {
+    "spatie/async": "^1.5"
   }
 }
