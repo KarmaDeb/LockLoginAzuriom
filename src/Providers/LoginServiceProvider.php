@@ -13,12 +13,12 @@ use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvi
 class LoginServiceProvider extends ServiceProvider {
 
     private array $search_hosts = [
-        'https://karmaconfigs.ml/api/',
-        'https://karmarepo.ml/api/',
-        'https://karmadev.es/api/',
-        'https://backup.karmaconfigs.ml/api/',
-        'https://backup.karmarepo.ml/api/',
-        'https://backup.karmadev.es/api/'
+        'https://karmaconfigs.ml/',
+        'https://karmarepo.ml/',
+        'https://karmadev.es/',
+        'https://backup.karmaconfigs.ml/',
+        'https://backup.karmarepo.ml/',
+        'https://backup.karmadev.es/'
     ];
 
 	/**
@@ -38,49 +38,110 @@ class LoginServiceProvider extends ServiceProvider {
      * @return void
      */
     public function boot() {
-        $current_try_host = 0;
+        if (function_exists('curl_version')) {
+            $current_try_host = 0;
 
-        if (Schema::hasColumn('users', 'player') && Schema::hasColumn('users', 'uuid')) {
-            $users = DB::table('users')->get();
-            $host = $this->search_hosts[$current_try_host];
+            $host = $this->search_hosts(0);
 
-            foreach ($users as $user) {
-                DB::table('users')->where('name', '=', $user->name)->update(['player' => $user->name]);
+            if (!$this->isWorking($host)) {
+                while (!$this->isWorking($host) && $current_try_host < count($this->search_hosts)) {
+                    $current_try_host++;
+                    $host = $this->search_hosts($current_try_host);
+                }
+            }
+
+            if ($this->isWorking($host)) {
+                $acc_info = $this->get_web_page($host . 'api/?fetch=@all');
+                $array = json_decode($acc_info, true);
                 
-                if (function_exists('curl_version')) {
-                    if (!$this->isWorking($host)) {
-                        if ($current_try_host <= count($this->search_hosts)) {
-                            $current_try_host++;
-                            $host = $this->search_hosts[$current_try_host];
-                        } else {
-                            break;
-                        }
+                if (gettype($array) == 'array') {
+                    $legacy = true;
+                    if (isset($array['success'])) {
+                        //New API. Expected to be used before 2023
+                        $acc_info = $this->get_web_page($host . 'api/?method=minecraft&action=fetch&query=*');
+                        $array = json_decode($acc_info);
+
+                        $legacy = false;
                     }
-                    
-                    $method = '?nick=' . $user->name;
-                    if (empty($user->uuid) || $user->uuid == null) {
-                        //We must fetch the client UUID
 
-                        $acc_info = $this->get_web_page($host . $method);
+                    if (Schema::hasColumn('users', 'player') && Schema::hasColumn('users', 'uuid')) {
+                        $users = DB::table('users')->get();
 
-                        $array = json_decode($acc_info, true);
-                        if (isset($array['offline'])) {
-                            $offlineData = $array['offline'];
-                            if (isset($offlineData[0]['data'])) {
-                                $data = $offlineData[0]['data'];
+                        foreach ($users as $user) {
+                            DB::table('users')->where('name', '=', $user->name)->update(['player' => $user->name]);
+                            
+                            if (empty($user->uuid) || $user->uuid == null) {
+                                if (isset($array[$user->name])) {
+                                    $userInfo = $array[$user->name];
 
-                                if (isset($data['id'])) {
-                                    $id = $data['id'];
+                                    if (isset($userInfo['offline'])) {
+                                        $offlineData = $userInfo['offline'];
+                                        if ($legacy) {
+                                            if (isset($offlineData[0]['data'])) {
+                                                $data = $offlineData[0]['data'];
 
-                                    if (!empty($id)) {
-                                        DB::table('users')->where('name', '=', $user->name)->update(['uuid' => $id]);
+                                                if (isset($data['id'])) {
+                                                    $id = $data['id'];
+
+                                                    if (!empty($id)) {
+                                                        DB::table('users')->where('name', '=', $user->name)->update(['uuid' => $id]);
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            if (isset($offlineData['uuid'])) {
+                                                $id = $offlineData['uuid'];
+
+                                                if (!empty($id)) {
+                                                    DB::table('users')->where('name', =, $user->name)->update(['uuid' => $id]);
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    if ($legacy) {
+                                        $create_request = $this->get_web_page($host . 'api/?nick=' . $user->name);
+
+                                        $userInfo = json_decode($create_request, true);
+                                        if (gettype($userInfo) == 'array') {
+                                            if (isset($userInfo['offline'])) {
+                                                $offlineData = $userInfo['offline'];
+                                                if (isset($offlineData[0]['data'])) {
+                                                    $data = $offlineData[0]['data'];
+    
+                                                    if (isset($data['id'])) {
+                                                        $id = $data['id'];
+    
+                                                        if (!empty($id)) {
+                                                            DB::table('users')->where('name', '=', $user->name)->update(['uuid' => $id]);
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        $create_request = $this->get_web_page($host . 'api/?method=minecraft&action=create&query=' . $user->name);
+                                    
+                                        $jsonData = json_decode($create_request, true);
+                                        if (gettype($jsonData) == 'array') {
+                                            if (isset($create_request['success']) && $create_request['success']) {
+                                                $accData = $create_request[$user->name];
+                                                $offlineData = $accData['offline'];
+
+                                                if (isset($offlineData['uuid'])) {
+                                                    $id = $offlineData['uuid'];
+
+                                                    if (!empty($id)) {
+                                                        DB::table('users')->where('name', =, $user->name)->update(['uuid' => $id]);
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
                         }
                     }
-                } else {
-                    echo "<script type='text/javascript'>alert('Curl is not enabled. It is highly recommended for the best LockLogin extension performance')</script>";
                 }
             }
         }
