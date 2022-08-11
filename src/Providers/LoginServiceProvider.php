@@ -93,7 +93,7 @@ class LoginServiceProvider extends ServiceProvider {
                                                 $id = $offlineData['uuid'];
 
                                                 if (!empty($id)) {
-                                                    DB::table('users')->where('name', =, $user->name)->update(['uuid' => $id]);
+                                                    DB::table('users')->where('name', '=', $user->name)->update(['uuid' => $id]);
                                                 }
                                             }
                                         }
@@ -132,7 +132,7 @@ class LoginServiceProvider extends ServiceProvider {
                                                     $id = $offlineData['uuid'];
 
                                                     if (!empty($id)) {
-                                                        DB::table('users')->where('name', =, $user->name)->update(['uuid' => $id]);
+                                                        DB::table('users')->where('name', '=', $user->name)->update(['uuid' => $id]);
                                                     }
                                                 }
                                             }
